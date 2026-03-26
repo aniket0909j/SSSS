@@ -1049,5 +1049,417 @@ if __name__ == "__main__":
 
     graph.print_agraph()
 
+    Got it 👍 — here is your **FINAL EXAM FORMAT ANSWER**
+👉 **WITH QUESTIONS + FULL SQL CODE (Tables + INSERT + Queries together)**
+
+---
+
+# 🔷 **Q1. Property–Owner Database**
+
+**Question:** Create a view to display the owner details having more than 2 properties.
+
+```sql id="q1full1"
+CREATE TABLE Owner (
+    owner_name VARCHAR(50) PRIMARY KEY,
+    addr VARCHAR(100),
+    phno VARCHAR(15)
+);
+
+CREATE TABLE Property (
+    pno INT PRIMARY KEY,
+    p_desc VARCHAR(100),
+    area VARCHAR(50),
+    rate INT CHECK (rate > 0),
+    owner_name VARCHAR(50),
+    FOREIGN KEY (owner_name) REFERENCES Owner(owner_name)
+);
+
+INSERT INTO Owner VALUES
+('Amit','Pune','1111'),
+('Rahul','Mumbai','2222'),
+('Sneha','Pune','3333');
+
+INSERT INTO Property VALUES
+(1,'Flat','pune',50000,'Amit'),
+(2,'Villa','pune',80000,'Amit'),
+(3,'Shop','pune',90000,'Amit'),
+(4,'Flat','mumbai',60000,'Rahul'),
+(5,'Plot','pune',95000,'Sneha');
+
+CREATE VIEW owner_more_than_2_props AS
+SELECT o.owner_name, o.addr, o.phno
+FROM Owner o
+JOIN Property p ON o.owner_name = p.owner_name
+GROUP BY o.owner_name, o.addr, o.phno
+HAVING COUNT(p.pno) > 2;
+```
+
+---
+
+# 🔷 **Q2. Property–Owner Database**
+
+**Question:** Create a view to find property details with maximum rate in Pune.
+
+```sql id="q2full2"
+CREATE VIEW max_rate_pune AS
+SELECT *
+FROM Property
+WHERE area='pune'
+AND rate=(SELECT MAX(rate) FROM Property WHERE area='pune');
+```
+
+---
+
+# 🔷 **Q3. Student-Marks Database**
+
+**Question:** Display student name, class and total marks scored.
+
+```sql id="q3full3"
+CREATE TABLE Student (
+    rollno INT PRIMARY KEY,
+    s_name VARCHAR(20) NOT NULL,
+    address VARCHAR(25),
+    class VARCHAR(10)
+);
+
+CREATE TABLE Subject (
+    scode VARCHAR(10) PRIMARY KEY,
+    subject_name VARCHAR(20)
+);
+
+CREATE TABLE Marks (
+    rollno INT,
+    scode VARCHAR(10),
+    marks_scored INT,
+    PRIMARY KEY (rollno, scode),
+    FOREIGN KEY (rollno) REFERENCES Student(rollno),
+    FOREIGN KEY (scode) REFERENCES Subject(scode)
+);
+
+INSERT INTO Student VALUES
+(1,'Raj','Pune','FY'),
+(2,'Simran','Mumbai','SY'),
+(3,'Aman','Pune','TY');
+
+INSERT INTO Subject VALUES
+('S1','DBMS'),
+('S2','OS'),
+('S3','CN');
+
+INSERT INTO Marks VALUES
+(1,'S1',85),
+(1,'S2',75),
+(2,'S1',90),
+(2,'S2',82),
+(3,'S3',60);
+
+CREATE VIEW student_total_marks AS
+SELECT s.s_name, s.class, SUM(m.marks_scored) AS total_marks
+FROM Student s
+JOIN Marks m ON s.rollno=m.rollno
+GROUP BY s.s_name,s.class
+ORDER BY s.s_name;
+```
+
+---
+
+# 🔷 **Q4. Student-Marks Database**
+
+**Question:** Display students scoring more than 80.
+
+```sql id="q4full4"
+CREATE VIEW students_above_80 AS
+SELECT s.s_name, sub.subject_name, m.marks_scored
+FROM Student s
+JOIN Marks m ON s.rollno=m.rollno
+JOIN Subject sub ON m.scode=sub.scode
+WHERE m.marks_scored > 80;
+```
+
+---
+
+# 🔷 **Q5. Function using Cursor**
+
+**Question:** Display student details based on address.
+
+```sql id="q5full5"
+CREATE OR REPLACE FUNCTION get_student_details(p_addr VARCHAR)
+RETURNS VOID AS $$
+DECLARE rec RECORD;
+BEGIN
+FOR rec IN
+    SELECT s.s_name, sub.subject_name, m.marks_scored
+    FROM Student s
+    JOIN Marks m ON s.rollno=m.rollno
+    JOIN Subject sub ON m.scode=sub.scode
+    WHERE s.address=p_addr
+LOOP
+    RAISE NOTICE 'Name: %, Subject: %, Marks: %',
+    rec.s_name, rec.subject_name, rec.marks_scored;
+END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+# 🔷 **Q6. Function using Cursor**
+
+**Question:** Calculate total marks of each student.
+
+```sql id="q6full6"
+CREATE OR REPLACE FUNCTION total_marks_all()
+RETURNS VOID AS $$
+DECLARE rec RECORD;
+total INT;
+BEGIN
+FOR rec IN SELECT rollno,s_name FROM Student LOOP
+    SELECT SUM(marks_scored) INTO total FROM Marks WHERE rollno=rec.rollno;
+    RAISE NOTICE 'Name: %, Total: %',rec.s_name,total;
+END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+# 🔷 **Q7. Trigger**
+
+**Question:** Before deleting student record display message.
+
+```sql id="q7full7"
+CREATE OR REPLACE FUNCTION before_delete_student()
+RETURNS TRIGGER AS $$
+BEGIN
+RAISE NOTICE 'Student record is being deleted';
+RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_before_delete_student
+BEFORE DELETE ON Student
+FOR EACH ROW
+EXECUTE FUNCTION before_delete_student();
+```
+
+---
+
+# 🔷 **Q8. Trigger**
+
+**Question:** Ensure marks are between 10 and 100.
+
+```sql id="q8full8"
+CREATE OR REPLACE FUNCTION check_marks()
+RETURNS TRIGGER AS $$
+BEGIN
+IF NEW.marks_scored < 10 OR NEW.marks_scored > 100 THEN
+RAISE EXCEPTION 'Invalid Marks';
+END IF;
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_marks
+BEFORE INSERT OR UPDATE ON Marks
+FOR EACH ROW
+EXECUTE FUNCTION check_marks();
+```
+
+---
+
+# 🔷 **Q9. Bank Database**
+
+**Question:** Customers with loan less than required.
+
+```sql id="q9full9"
+CREATE TABLE Branch (
+    br_id INT PRIMARY KEY,
+    br_name VARCHAR(30),
+    br_city VARCHAR(20)
+);
+
+CREATE TABLE Customer (
+    cno INT PRIMARY KEY,
+    c_name VARCHAR(20),
+    caddr VARCHAR(35),
+    city VARCHAR(20),
+    dob DATE
+);
+
+CREATE TABLE Loan_application (
+    lno INT PRIMARY KEY,
+    l_amt_required INT CHECK (l_amt_required>0),
+    l_amt_approved INT,
+    l_date DATE
+);
+
+CREATE TABLE Ternary (
+    br_id INT,
+    cno INT,
+    lno INT,
+    PRIMARY KEY(br_id,cno,lno),
+    FOREIGN KEY (br_id) REFERENCES Branch(br_id),
+    FOREIGN KEY (cno) REFERENCES Customer(cno),
+    FOREIGN KEY (lno) REFERENCES Loan_application(lno)
+);
+
+INSERT INTO Branch VALUES (1,'SBI','Pune'),(2,'HDFC','Mumbai');
+INSERT INTO Customer VALUES (1,'Ravi','Pune','Pune','2000-06-10'),
+(2,'Neha','Mumbai','Mumbai','1999-05-05');
+
+INSERT INTO Loan_application VALUES
+(1,50000,40000,'2023-01-01'),
+(2,60000,60000,'2023-02-01');
+
+INSERT INTO Ternary VALUES (1,1,1),(2,2,2);
+
+CREATE VIEW loan_less_than_required AS
+SELECT c.*
+FROM Customer c
+JOIN Ternary t ON c.cno=t.cno
+JOIN Loan_application l ON t.lno=l.lno
+WHERE l.l_amt_approved < l.l_amt_required;
+```
+
+---
+
+# 🔷 **Q10. Bank Database**
+
+**Question:** Customers with June birthdays.
+
+```sql id="q10full10"
+CREATE VIEW june_birthdays AS
+SELECT * FROM Customer
+WHERE EXTRACT(MONTH FROM dob)=6;
+```
+
+---
+
+# 🔷 **Q11. Function**
+
+**Question:** Count customers of branch.
+
+```sql id="q11full11"
+CREATE OR REPLACE FUNCTION total_customers(p_branch_name VARCHAR)
+RETURNS INT AS $$
+DECLARE total INT;
+BEGIN
+SELECT COUNT(DISTINCT t.cno) INTO total
+FROM Branch b
+JOIN Ternary t ON b.br_id=t.br_id
+WHERE b.br_name=p_branch_name;
+RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+# 🔷 **Q12. Function**
+
+**Question:** Maximum loan approved.
+
+```sql id="q12full12"
+CREATE OR REPLACE FUNCTION max_loan()
+RETURNS INT AS $$
+DECLARE m INT;
+BEGIN
+SELECT MAX(l_amt_approved) INTO m FROM Loan_application;
+RETURN m;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+# 🔷 **Q13–Q17 Project–Employee**
+
+**Question:** Functions on project & employee.
+
+```sql id="q13full13"
+CREATE TABLE Project (
+    pno INT PRIMARY KEY,
+    p_name VARCHAR(30),
+    ptype VARCHAR(20),
+    duration INT
+);
+
+CREATE TABLE Employee (
+    eno INT PRIMARY KEY,
+    e_name VARCHAR(20),
+    qualification VARCHAR(15),
+    joindate DATE
+);
+
+CREATE TABLE Proj_Emp (
+    pno INT,
+    eno INT,
+    start_date DATE,
+    no_of_hours_worked INT,
+    PRIMARY KEY(pno,eno),
+    FOREIGN KEY (pno) REFERENCES Project(pno),
+    FOREIGN KEY (eno) REFERENCES Employee(eno)
+);
+
+INSERT INTO Project VALUES (1,'BankSys','IT',12),(2,'WebApp','IT',6);
+INSERT INTO Employee VALUES (1,'Anil','BE','2009-05-01'),
+(2,'Sunil','BE','2012-06-01');
+
+INSERT INTO Proj_Emp VALUES
+(1,1,'2023-01-01',100),
+(1,2,'2023-02-01',120);
+
+CREATE OR REPLACE FUNCTION emp_count_project(pname VARCHAR)
+RETURNS INT AS $$
+DECLARE total INT;
+BEGIN
+SELECT COUNT(pe.eno) INTO total
+FROM Project p JOIN Proj_Emp pe ON p.pno=pe.pno
+WHERE p.p_name=pname;
+RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION emp_before_date()
+RETURNS INT AS $$
+DECLARE total INT;
+BEGIN
+SELECT COUNT(*) INTO total
+FROM Employee
+WHERE joindate < '2010-10-03';
+RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+# 🔷 **Q15. Procedure**
+
+**Question:** Transfer ₹1000 from account 10 to 20.
+
+```sql id="q15full15"
+CREATE TABLE Account (
+    acc_no INT PRIMARY KEY,
+    balance INT
+);
+
+INSERT INTO Account VALUES (10,5000),(20,3000);
+
+CREATE OR REPLACE PROCEDURE transfer_amount()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+UPDATE Account SET balance=balance-1000 WHERE acc_no=10;
+UPDATE Account SET balance=balance+1000 WHERE acc_no=20;
+END;
+$$;
+```
+
+---
+
+
+
+
 
 
